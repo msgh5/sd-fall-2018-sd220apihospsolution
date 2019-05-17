@@ -224,6 +224,10 @@
     <Compile Include="Models\Domain\Visit.cs" />
     <Compile Include="Models\IdentityModels.cs" />
     <Compile Include="Models\Domain\Patient.cs" />
+    <Compile Include="Models\PatientBindingModel.cs" />
+    <Compile Include="Models\PatientViewModel.cs" />
+    <Compile Include="Models\VisitBindingModel.cs" />
+    <Compile Include="Models\VisitViewModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Providers\ApplicationOAuthProvider.cs" />
     <Compile Include="Results\ChallengeResult.cs" />

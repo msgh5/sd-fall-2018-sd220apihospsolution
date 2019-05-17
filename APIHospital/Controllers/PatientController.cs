@@ -1,55 +1,165 @@
 ﻿using APIHospital.Models;
 using APIHospital.Models.Domain;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
 using System.Web.Http;
 
 namespace APIHospital.Controllers
 {
+   // [Authorize]
     public class PatientController : ApiController
     {
+        private ApplicationDbContext DbContext;
+
+        public PatientController()
+        {
+            DbContext = new ApplicationDbContext();
+        }
+
         public IHttpActionResult Get()
         {
-            var dbContext = new ApplicationDbContext();
-            return Ok(dbContext.Patients.ToList());
+            var model = DbContext
+                .Patients
+                .Select(p => new PatientViewModel
+                {
+                    Id = p.Id,
+                    DateOfBirth = p.DateOfBirth,
+                    Email = p.Email,
+                    FirstName = p.FirstName,
+                    LastName = p.LastName,
+                    HasInsurance = p.HasInsurance,
+                    Visits = p.Visits.Select(t => new VisitViewModel
+                    {
+                        Comments = t.Comments,
+                        Date = t.Date,
+                        Id = t.Id
+                    }).ToList()
+                })
+                .ToList();
+
+            return Ok(model);
         }
 
         public IHttpActionResult Get(int id)
         {
-            var dbContext = new ApplicationDbContext();
-            return Ok(dbContext.Patients.Where(p => p.Id == id).FirstOrDefault());
+            var model = DbContext
+                .Patients
+                .Where(p => p.Id == id)
+                .Select(p => new PatientViewModel
+                {
+                    Id = p.Id,
+                    DateOfBirth = p.DateOfBirth,
+                    Email = p.Email,
+                    FirstName = p.FirstName,
+                    LastName = p.LastName,
+                    HasInsurance = p.HasInsurance,
+                    Visits = p.Visits.Select(t => new VisitViewModel
+                    {
+                        Comments = t.Comments,
+                        Date = t.Date,
+                        Id = t.Id
+                    }).ToList()
+                })
+                .FirstOrDefault();
+
+            if (model == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(model);
         }
 
-        public IHttpActionResult Post(Patient patient)
+        public IHttpActionResult Post(PatientBindingModel formData)
         {
-            var dbContext = new ApplicationDbContext();
-            dbContext.Patients.Add(patient);
-            return Ok(patient);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var patient = new Patient()
+            {
+                DateOfBirth = formData.DateOfBirth,
+                Email = formData.Email,
+                FirstName = formData.FirstName,
+                HasInsurance = formData.HasInsurance,
+                LastName = formData.LastName
+            };
+
+            DbContext.Patients.Add(patient);
+            DbContext.SaveChanges();
+
+            var model = new PatientViewModel
+            {
+                Id = patient.Id,
+                DateOfBirth = patient.DateOfBirth,
+                Email = patient.Email,
+                FirstName = patient.FirstName,
+                LastName = patient.LastName,
+                HasInsurance = patient.HasInsurance
+            };
+
+            return Ok(model);
         }
 
-        public IHttpActionResult Put(int id, Patient patient)
+        public IHttpActionResult Put(int id, PatientBindingModel formData)
         {
-            var dbContext = new ApplicationDbContext();
-            var patient1 = dbContext.Patients.Where(p => p.Id == id).FirstOrDefault();
-            patient1.HasInsurance = patient.HasInsurance;
-            patient1.FirstName = patient.FirstName;
-            patient1.LastName = patient.LastName;
-            dbContext.SaveChanges();
+            var patient = DbContext.Patients.FirstOrDefault(p => p.Id == id);
 
-            return Ok(patient);
+            if (patient == null)
+            {
+                return NotFound();
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            patient.DateOfBirth = formData.DateOfBirth;
+            patient.Email = formData.Email;
+            patient.FirstName = formData.FirstName;
+            patient.HasInsurance = formData.HasInsurance;
+            patient.LastName = formData.LastName;
+
+            DbContext.SaveChanges();
+
+            var model = new PatientViewModel
+            {
+                Id = patient.Id,
+                DateOfBirth = patient.DateOfBirth,
+                Email = patient.Email,
+                FirstName = patient.FirstName,
+                LastName = patient.LastName,
+                HasInsurance = patient.HasInsurance
+            };
+
+            return Ok(model);
         }
-        
+
         [Route("api/{id:int}/recordvisit")]
-        public IHttpActionResult RecordVisit(int id, Visit visit)
+        public IHttpActionResult RecordVisit(int id, VisitBindingModel formData)
         {
-            var dbContext = new ApplicationDbContext();
-            var patient = dbContext.Patients.Where(p => p.Id == id).FirstOrDefault();
+            var patient = DbContext
+                .Patients
+                .FirstOrDefault(p => p.Id == id);
+
+            if (patient == null)
+            {
+                return NotFound();
+            }
+
+            var visit = new Visit
+            {
+                Date = DateTime.Now,
+                Comments = formData?.Comments
+            };
+
             patient.Visits.Add(visit);
-            dbContext.SaveChanges();
-            return Ok(patient);
+
+            DbContext.SaveChanges();
+
+            return Ok();
         }
     }
 }
