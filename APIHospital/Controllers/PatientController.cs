@@ -1,12 +1,14 @@
 ﻿using APIHospital.Models;
 using APIHospital.Models.Domain;
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using System;
 using System.Linq;
 using System.Web.Http;
 
 namespace APIHospital.Controllers
 {
-   // [Authorize]
+    [Authorize]
     public class PatientController : ApiController
     {
         private ApplicationDbContext DbContext;
@@ -20,21 +22,7 @@ namespace APIHospital.Controllers
         {
             var model = DbContext
                 .Patients
-                .Select(p => new PatientViewModel
-                {
-                    Id = p.Id,
-                    DateOfBirth = p.DateOfBirth,
-                    Email = p.Email,
-                    FirstName = p.FirstName,
-                    LastName = p.LastName,
-                    HasInsurance = p.HasInsurance,
-                    Visits = p.Visits.Select(t => new VisitViewModel
-                    {
-                        Comments = t.Comments,
-                        Date = t.Date,
-                        Id = t.Id
-                    }).ToList()
-                })
+                .ProjectTo<PatientViewModel>()
                 .ToList();
 
             return Ok(model);
@@ -45,21 +33,7 @@ namespace APIHospital.Controllers
             var model = DbContext
                 .Patients
                 .Where(p => p.Id == id)
-                .Select(p => new PatientViewModel
-                {
-                    Id = p.Id,
-                    DateOfBirth = p.DateOfBirth,
-                    Email = p.Email,
-                    FirstName = p.FirstName,
-                    LastName = p.LastName,
-                    HasInsurance = p.HasInsurance,
-                    Visits = p.Visits.Select(t => new VisitViewModel
-                    {
-                        Comments = t.Comments,
-                        Date = t.Date,
-                        Id = t.Id
-                    }).ToList()
-                })
+                .ProjectTo<PatientViewModel>()
                 .FirstOrDefault();
 
             if (model == null)
@@ -77,27 +51,12 @@ namespace APIHospital.Controllers
                 return BadRequest(ModelState);
             }
 
-            var patient = new Patient()
-            {
-                DateOfBirth = formData.DateOfBirth,
-                Email = formData.Email,
-                FirstName = formData.FirstName,
-                HasInsurance = formData.HasInsurance,
-                LastName = formData.LastName
-            };
+            var patient = Mapper.Map<Patient>(formData);
 
             DbContext.Patients.Add(patient);
             DbContext.SaveChanges();
 
-            var model = new PatientViewModel
-            {
-                Id = patient.Id,
-                DateOfBirth = patient.DateOfBirth,
-                Email = patient.Email,
-                FirstName = patient.FirstName,
-                LastName = patient.LastName,
-                HasInsurance = patient.HasInsurance
-            };
+            var model = Mapper.Map<PatientViewModel>(patient);
 
             return Ok(model);
         }
@@ -116,23 +75,11 @@ namespace APIHospital.Controllers
                 return BadRequest(ModelState);
             }
 
-            patient.DateOfBirth = formData.DateOfBirth;
-            patient.Email = formData.Email;
-            patient.FirstName = formData.FirstName;
-            patient.HasInsurance = formData.HasInsurance;
-            patient.LastName = formData.LastName;
+            Mapper.Map(formData, patient);
 
             DbContext.SaveChanges();
 
-            var model = new PatientViewModel
-            {
-                Id = patient.Id,
-                DateOfBirth = patient.DateOfBirth,
-                Email = patient.Email,
-                FirstName = patient.FirstName,
-                LastName = patient.LastName,
-                HasInsurance = patient.HasInsurance
-            };
+            var model = Mapper.Map<PatientViewModel>(patient);
 
             return Ok(model);
         }
@@ -149,11 +96,8 @@ namespace APIHospital.Controllers
                 return NotFound();
             }
 
-            var visit = new Visit
-            {
-                Date = DateTime.Now,
-                Comments = formData?.Comments
-            };
+            var visit = Mapper.Map<Visit>(formData);
+            visit.Date = DateTime.Now;
 
             patient.Visits.Add(visit);
 
